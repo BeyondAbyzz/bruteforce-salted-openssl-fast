@@ -208,6 +208,27 @@ int valid_data(unsigned char *data, unsigned int len)
   return(1);
 }
 
+int has_more_than_two_consecutive_chars(const unsigned char *password, unsigned int password_len) {
+	for (unsigned int i = 2; i < password_len; i++) {
+		if (password[i] == password[i - 1] && password[i] == password[i - 2]) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int has_more_than_four_identical_chars(const unsigned char *password, unsigned int password_len) {
+	int char_count[256] = {0};
+	
+	for (unsigned int i = 0; i < password_len; i++) {
+		char_count[(int)password[i]]++;
+		if (char_count[(int)password[i]] > 4) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
 int generate_next_password(unsigned char **pwd, unsigned int *pwd_len)
 {
   wchar_t *password;
@@ -259,6 +280,13 @@ int generate_next_password(unsigned char **pwd, unsigned int *pwd_len)
   }
   wcstombs(*pwd, password, *pwd_len + 1);
   free(password);
+
+  if (has_more_than_two_consecutive_chars(*pwd, *pwd_len) || has_more_than_four_identical_chars(*pwd, *pwd_len)) {
+	  free(*pwd);
+	  pthread_mutex_unlock(&get_password_lock);
+	  return generate_next_password(pwd, pwd_len);
+  }
+  
   snprintf(last_pass, LAST_PASS_MAX_SHOWN_LENGTH, "%s", *pwd);
 
   /* Prepare next password */
